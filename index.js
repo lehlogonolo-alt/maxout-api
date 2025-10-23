@@ -1,59 +1,27 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const cron = require('node-cron');
 require('dotenv').config();
 
 const Workout = require('./models/Workout');
-const admin = require('./firebase'); // Firebase Admin SDK
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔔 Daily Motivation at 07:00
-cron.schedule("0 7 * * *", () => {
-  const message = {
-    notification: {
-      title: "💪 MaxOut Motivation",
-      body: "Push yourself — no one else will!"
-    },
-    topic: "daily_motivation"
-  };
-
-  admin.messaging().send(message)
-    .then(() => console.log("✅ Motivation sent at 07:00"))
-    .catch(err => console.error("❌ FCM error:", err));
-});
-
-// 🔔 Workout Reminder at 17:00
-cron.schedule("0 17 * * *", () => {
-  const message = {
-    notification: {
-      title: "🔔 Workout Reminder",
-      body: "Dont forget to stretch!"
-    },
-    topic: "workout_reminders"
-  };
-
-  admin.messaging().send(message)
-    .then(() => console.log("✅ Reminder sent at 17:00"))
-    .catch(err => console.error("❌ FCM error:", err));
-});
-
-// 🌐 Connect to MongoDB
+//  Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => console.log('MongoDB connected'))
   .catch(err => console.error(err));
 
-// 🏠 Homepage route
+//  Homepage route
 app.get('/', (req, res) => {
   res.send('Welcome to MaxOut API 💪');
 });
 
-// 🌱 Temporary seeding route
+//  Temporary seeding route
 app.get('/seed', async (req, res) => {
   try {
     await Workout.insertMany([
@@ -70,7 +38,7 @@ app.get('/seed', async (req, res) => {
   }
 });
 
-// 📦 GET /workouts
+// GET /workouts
 app.get('/workouts', async (req, res) => {
   try {
     const workouts = await Workout.find();
@@ -80,7 +48,7 @@ app.get('/workouts', async (req, res) => {
   }
 });
 
-// ⭐ POST /favourites
+//  POST /favourites (optional)
 app.post('/favourites', async (req, res) => {
   const { title } = req.body;
   try {
@@ -92,9 +60,10 @@ app.post('/favourites', async (req, res) => {
   }
 });
 
-// 🚀 Start server
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
