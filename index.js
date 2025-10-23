@@ -6,11 +6,14 @@ const admin = require('firebase-admin');
 require('dotenv').config();
 
 const Workout = require('./models/Workout');
-const serviceAccount = require('./serviceAccountKey.json'); // 🔐 Add your Firebase service account file
+
+// 🔐 Parse and fix Firebase service account from environment variable
+const rawServiceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+rawServiceAccount.private_key = rawServiceAccount.private_key.replace(/\\n/g, '\n');
 
 // 🔥 Initialize Firebase Admin SDK
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert(rawServiceAccount)
 });
 
 const app = express();
@@ -90,6 +93,7 @@ cron.schedule('0 5 * * *', () => {
 // 🚀 Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
