@@ -1,27 +1,35 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const cron = require('node-cron');
+const admin = require('firebase-admin');
 require('dotenv').config();
 
 const Workout = require('./models/Workout');
+const serviceAccount = require('./serviceAccountKey.json'); // 🔐 Add your Firebase service account file
+
+// 🔥 Initialize Firebase Admin SDK
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-//  Connect to MongoDB
+// 🌐 Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => console.log('MongoDB connected'))
   .catch(err => console.error(err));
 
-//  Homepage route
+// 🏠 Homepage route
 app.get('/', (req, res) => {
   res.send('Welcome to MaxOut API 💪');
 });
 
-//  Temporary seeding route
+// 🌱 Temporary seeding route
 app.get('/seed', async (req, res) => {
   try {
     await Workout.insertMany([
@@ -29,7 +37,7 @@ app.get('/seed', async (req, res) => {
       { title: 'Push Ups', details: '10 min • 80 kcal', imageUrl: 'pushup.jpg' },
       { title: 'Abs', details: '10 min • 90 kcal', imageUrl: 'abs.jpg' },
       { title: 'Leg Day', details: '10 min • 90 kcal', imageUrl: 'legday.jpg' },
-      { title: 'Full Body Stretching', details: '15 min • 90 kcal', imageUrl: 'stretching.jpg'},
+      { title: 'Full Body Stretching', details: '15 min • 90 kcal', imageUrl: 'stretching.jpg' },
       { title: 'Running', details: '20 min • 200 kcal', imageUrl: 'running.jpeg' }
     ]);
     res.send('Workouts seeded!');
@@ -38,7 +46,7 @@ app.get('/seed', async (req, res) => {
   }
 });
 
-// GET /workouts
+// 📋 GET /workouts
 app.get('/workouts', async (req, res) => {
   try {
     const workouts = await Workout.find();
@@ -48,7 +56,7 @@ app.get('/workouts', async (req, res) => {
   }
 });
 
-//  POST /favourites (optional)
+// ⭐ POST /favourites
 app.post('/favourites', async (req, res) => {
   const { title } = req.body;
   try {
@@ -60,9 +68,29 @@ app.post('/favourites', async (req, res) => {
   }
 });
 
-// Start server
+// 🔔 Scheduled Push Notification (07:00 SAST = 05:00 UTC)
+cron.schedule('0 5 * * *', () => {
+  const message = {
+    notification: {
+      title: '💪 MaxOut Motivation',
+      body: 'Push yourself — no one else will!'
+    },
+    topic: 'daily_motivation'
+  };
+
+  admin.messaging().send(message)
+    .then(response => {
+      console.log('✅ Daily notification sent:', response);
+    })
+    .catch(error => {
+      console.error('❌ Error sending notification:', error);
+    });
+});
+
+// 🚀 Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
