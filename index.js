@@ -1,7 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const cron = require('node-cron');
 const admin = require('firebase-admin');
 require('dotenv').config();
 
@@ -71,28 +70,10 @@ app.post('/favourites', async (req, res) => {
   }
 });
 
-// 🔔 Scheduled Push Notification (07:00 SAST = 05:00 UTC)
-cron.schedule('0 5 * * *', () => {
-  const message = {
-    notification: {
-      title: '💪 MaxOut Motivation',
-      body: 'Push yourself — no one else will!'
-    },
-    topic: 'daily_motivation'
-  };
-
-  admin.messaging().send(message)
-    .then(response => {
-      console.log('✅ Daily notification sent:', response);
-    })
-    .catch(error => {
-      console.error('❌ Error sending notification:', error);
-    });
-});
-
 // 🚀 Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
