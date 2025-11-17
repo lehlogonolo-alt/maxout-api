@@ -219,9 +219,37 @@ app.get('/admin/users', verifyFirebaseToken, requireAdmin, async (req, res) => {
 
 // 📩 Contact messages (list + update status)
 app.get('/admin/messages', verifyFirebaseToken, requireAdmin, async (req, res) => {
-  const items = await ContactMessage.find().sort({ createdAt: -1 });
-  res.json(items);
+  try {
+    const { search = "", page = 1, pageSize = 10 } = req.query;
+
+    let query = {};
+    if (search) {
+      const regex = new RegExp(search, "i");
+      query = {
+        $or: [
+          { name: regex },
+          { email: regex },
+          { subject: regex },
+          { message: regex }
+        ]
+      };
+    }
+
+    const totalCount = await ContactMessage.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    const items = await ContactMessage.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(Number(pageSize));
+
+    res.json({ items, totalPages });
+  } catch (err) {
+    console.error("❌ Failed to list messages:", err);
+    res.status(500).json({ error: "Failed to list messages" });
+  }
 });
+
 app.patch('/admin/messages/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
   const { status } = req.body;
   const ok = await ContactMessage.findByIdAndUpdate(req.params.id, { status }, { new: true });
@@ -230,14 +258,42 @@ app.patch('/admin/messages/:id', verifyFirebaseToken, requireAdmin, async (req, 
 
 // 🐞 Reports (list + update status)
 app.get('/admin/reports', verifyFirebaseToken, requireAdmin, async (req, res) => {
-  const items = await ChatbotReport.find().sort({ createdAt: -1 });
-  res.json(items);
+  try {
+    const { search = "", page = 1, pageSize = 10 } = req.query;
+
+    let query = {};
+    if (search) {
+      const regex = new RegExp(search, "i");
+      query = {
+        $or: [
+          { type: regex },
+          { message: regex },
+          { userId: regex }
+        ]
+      };
+    }
+
+    const totalCount = await ChatbotReport.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    const items = await ChatbotReport.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(Number(pageSize));
+
+    res.json({ items, totalPages });
+  } catch (err) {
+    console.error("❌ Failed to list reports:", err);
+    res.status(500).json({ error: "Failed to list reports" });
+  }
 });
+
 app.patch('/admin/reports/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
   const { status } = req.body;
   const ok = await ChatbotReport.findByIdAndUpdate(req.params.id, { status }, { new: true });
   res.json(ok);
 });
+
 
 // 💬 Chat logs (list + detail)
 app.get('/admin/chatlogs', verifyFirebaseToken, requireAdmin, async (req, res) => {
@@ -292,6 +348,7 @@ app.get('/whoami/:uid', async (req, res) => {
 // 🚀 Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
