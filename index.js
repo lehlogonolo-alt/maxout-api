@@ -250,7 +250,23 @@ app.post('/admin/set-role', async (req, res) => {
   }
 });
 
+// ===== Debug route to check claims =====
+app.get('/whoami/:uid', async (req, res) => {
+  try {
+    const user = await admin.auth().getUser(req.params.uid);
+    res.json({
+      uid: user.uid,
+      email: user.email,
+      claims: user.customClaims || {}
+    });
+  } catch (err) {
+    console.error('❌ Error fetching user claims:', err);
+    res.status(500).json({ error: 'Failed to fetch user claims' });
+  }
+});
+
 // 🚀 Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
