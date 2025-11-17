@@ -226,6 +226,30 @@ app.get('/admin/chatlogs/:id', verifyFirebaseToken, requireAdmin, async (req, re
   res.json(item);
 });
 
+// ===== Secure endpoint to set roles =====
+// Use this to promote a user to admin by UID
+app.post('/admin/set-role', async (req, res) => {
+  try {
+    const { secret, uid, role } = req.body;
+
+    // Protect with secret key from .env
+    if (secret !== process.env.ADMIN_SECRET) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    if (!uid || !role) {
+      return res.status(400).json({ error: 'Missing uid or role' });
+    }
+
+    await admin.auth().setCustomUserClaims(uid, { role });
+
+    res.json({ ok: true, message: `Role '${role}' set for UID: ${uid}` });
+  } catch (err) {
+    console.error('❌ Error setting role:', err);
+    res.status(500).json({ error: 'Failed to set role' });
+  }
+});
+
 // 🚀 Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
