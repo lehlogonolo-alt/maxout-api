@@ -35,12 +35,12 @@ app.get('/', (req, res) => {
 app.get('/seed', async (req, res) => {
   try {
     await Workout.insertMany([
-      { title: 'Squats', details: '12 min • 120 kcal', imageUrl: 'squatt.jpg' },
+      { title: 'Squats', details: '10 min • 120 kcal', imageUrl: 'squatt.jpg' },
       { title: 'Push Ups', details: '10 min • 80 kcal', imageUrl: 'pushup.jpg' },
       { title: 'Abs', details: '10 min • 90 kcal', imageUrl: 'abs.jpg' },
       { title: 'Leg Day', details: '10 min • 90 kcal', imageUrl: 'legday.jpg' },
-      { title: 'Full Body Stretching', details: '15 min • 90 kcal', imageUrl: 'stretching.jpg' },
-      { title: 'Running', details: '20 min • 200 kcal', imageUrl: 'running.jpeg' }
+      { title: 'Full Body Stretching', details: '10 min • 90 kcal', imageUrl: 'stretching.jpg' },
+      { title: 'Running', details: '10 min • 200 kcal', imageUrl: 'running.jpeg' }
     ]);
     res.send('Workouts seeded!');
   } catch (err) {
@@ -99,6 +99,7 @@ app.get('/trigger-push', (req, res) => {
 // 🚀 Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
