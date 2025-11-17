@@ -330,6 +330,31 @@ app.post('/admin/set-role', async (req, res) => {
   }
 });
 
+// 📩 Delete a contact message
+app.delete('/admin/messages/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
+  try {
+    const deleted = await ContactMessage.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Message not found' });
+    res.json({ ok: true, id: deleted._id });
+  } catch (err) {
+    console.error("❌ Failed to delete message:", err);
+    res.status(500).json({ error: "Failed to delete message" });
+  }
+});
+
+// 🐞 Delete a report
+app.delete('/admin/reports/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
+  try {
+    const deleted = await ChatbotReport.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Report not found' });
+    res.json({ ok: true, id: deleted._id });
+  } catch (err) {
+    console.error("❌ Failed to delete report:", err);
+    res.status(500).json({ error: "Failed to delete report" });
+  }
+});
+
+
 // ===== Debug route to check claims =====
 app.get('/whoami/:uid', async (req, res) => {
   try {
@@ -348,6 +373,7 @@ app.get('/whoami/:uid', async (req, res) => {
 // 🚀 Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
