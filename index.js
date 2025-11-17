@@ -174,11 +174,16 @@ app.post('/chatbot/log', verifyFirebaseToken, async (req, res) => {
 
 // ===== Admin-only views =====
 
-// 👥 List Firebase users
+// 👥 List Firebase users with search + pagination
 app.get('/admin/users', verifyFirebaseToken, requireAdmin, async (req, res) => {
   try {
+    const { search = "", page = 1, pageSize = 10 } = req.query;
+
+    // Fetch up to 1000 users from Firebase Auth
     const list = await admin.auth().listUsers(1000);
-    const users = list.users.map(u => ({
+
+    // Map users into clean objects
+    let users = list.users.map(u => ({
       uid: u.uid,
       email: u.email,
       displayName: u.displayName,
@@ -187,11 +192,30 @@ app.get('/admin/users', verifyFirebaseToken, requireAdmin, async (req, res) => {
       createdAt: u.metadata.creationTime,
       lastSignIn: u.metadata.lastSignInTime
     }));
-    res.json(users);
+
+    // 🔎 Apply search filter (email or UID)
+    if (search) {
+      const s = search.toLowerCase();
+      users = users.filter(
+        u =>
+          (u.email && u.email.toLowerCase().includes(s)) ||
+          u.uid.toLowerCase().includes(s)
+      );
+    }
+
+    // 📄 Pagination
+    const totalPages = Math.ceil(users.length / pageSize);
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    const items = users.slice(start, end);
+
+    res.json({ items, totalPages });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to list users' });
+    console.error("❌ Failed to list users:", err);
+    res.status(500).json({ error: "Failed to list users" });
   }
 });
+
 
 // 📩 Contact messages (list + update status)
 app.get('/admin/messages', verifyFirebaseToken, requireAdmin, async (req, res) => {
@@ -268,5 +292,6 @@ app.get('/whoami/:uid', async (req, res) => {
 // 🚀 Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
