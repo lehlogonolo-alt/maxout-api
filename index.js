@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const admin = require('firebase-admin');
-require('dotenv').config();
+require('dotenv').config(); 
 
 const Workout = require('./models/Workout');
 // NEW: admin and chatbot models
@@ -373,6 +373,7 @@ app.get('/whoami/:uid', async (req, res) => {
 // 🚀 Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
