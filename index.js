@@ -295,16 +295,60 @@ app.patch('/admin/reports/:id', verifyFirebaseToken, requireAdmin, async (req, r
 });
 
 
-// 💬 Chat logs (list + detail)
+// 💬 Chat logs (list + detail + delete)
 app.get('/admin/chatlogs', verifyFirebaseToken, requireAdmin, async (req, res) => {
-  const items = await ChatLog.find().sort({ updatedAt: -1 }).limit(200);
-  res.json(items);
+  try {
+    const { search = "", page = 1, pageSize = 10 } = req.query;
+
+    let query = {};
+    if (search) {
+      const regex = new RegExp(search, "i");
+      query = {
+        $or: [
+          { sessionId: regex },
+          { userId: regex },
+          { "messages.text": regex }
+        ]
+      };
+    }
+
+    const totalCount = await ChatLog.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    const items = await ChatLog.find(query)
+      .sort({ updatedAt: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(Number(pageSize));
+
+    res.json({ items, totalPages });
+  } catch (err) {
+    console.error("❌ Failed to list chat logs:", err);
+    res.status(500).json({ error: "Failed to list chat logs" });
+  }
 });
+
 app.get('/admin/chatlogs/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
-  const item = await ChatLog.findById(req.params.id);
-  if (!item) return res.status(404).json({ error: 'Not found' });
-  res.json(item);
+  try {
+    const item = await ChatLog.findById(req.params.id);
+    if (!item) return res.status(404).json({ error: 'Not found' });
+    res.json(item);
+  } catch (err) {
+    console.error("❌ Failed to fetch chat log:", err);
+    res.status(500).json({ error: "Failed to fetch chat log" });
+  }
 });
+
+app.delete('/admin/chatlogs/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
+  try {
+    const deleted = await ChatLog.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Chat log not found' });
+    res.json({ ok: true, id: deleted._id });
+  } catch (err) {
+    console.error("❌ Failed to delete chat log:", err);
+    res.status(500).json({ error: "Failed to delete chat log" });
+  }
+});
+
 
 // ===== Secure endpoint to set roles =====
 // Use this to promote a user to admin by UID
@@ -373,6 +417,7 @@ app.get('/whoami/:uid', async (req, res) => {
 // 🚀 Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
