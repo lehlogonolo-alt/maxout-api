@@ -2,7 +2,7 @@ require('dotenv').config(); // ✅ Load .env first
 const mongoose = require('mongoose');
 const Workout = require('./models/Workout');
 
-// ✅ Use the actual value from .env
+//  Use the actual value from .env
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -19,6 +19,7 @@ Workout.insertMany([
   console.log('Workouts seeded');
   mongoose.disconnect();
 });
+
 
 
 
