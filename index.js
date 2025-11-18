@@ -10,11 +10,11 @@ const ContactMessage = require('./models/ContactMessage');
 const ChatbotReport = require('./models/ChatbotReport');
 const ChatLog = require('./models/ChatLog');
 
-// 🔐 Parse and fix Firebase service account from environment variable
+//  Parse and fix Firebase service account from environment variable
 const rawServiceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 rawServiceAccount.private_key = rawServiceAccount.private_key.replace(/\\n/g, '\n');
 
-// 🔥 Initialize Firebase Admin SDK
+//  Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(rawServiceAccount)
 });
@@ -23,7 +23,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🌐 Connect to MongoDB
+//  Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -52,12 +52,12 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// 🏠 Homepage route
+//  Homepage route
 app.get('/', (req, res) => {
   res.send('Welcome to MaxOut API 💪');
 });
 
-// 🌱 Temporary seeding route
+//  Temporary seeding route
 app.get('/seed', async (req, res) => {
   try {
     await Workout.insertMany([
@@ -74,7 +74,7 @@ app.get('/seed', async (req, res) => {
   }
 });
 
-// 📋 GET /workouts
+//  GET /workouts
 app.get('/workouts', async (req, res) => {
   try {
     const workouts = await Workout.find();
@@ -84,7 +84,7 @@ app.get('/workouts', async (req, res) => {
   }
 });
 
-// ⭐ POST /favourites
+//  POST /favourites
 app.post('/favourites', async (req, res) => {
   const { title } = req.body;
   try {
@@ -96,7 +96,7 @@ app.post('/favourites', async (req, res) => {
   }
 });
 
-// 🔔 Trigger push notification manually (for EasyCron or testing)
+//  Trigger push notification manually (for EasyCron or testing)
 app.get('/trigger-push', (req, res) => {
   const secret = req.query.secret;
   if (secret !== process.env.PUSH_SECRET) {
@@ -124,7 +124,7 @@ app.get('/trigger-push', (req, res) => {
 
 // ===== Public submissions =====
 
-// 📬 Contact form: create message
+//  Contact form: create message
 app.post('/contact', async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
@@ -137,7 +137,7 @@ app.post('/contact', async (req, res) => {
   }
 });
 
-// 🐞 Chatbot report: bug/support/etc.
+//  Chatbot report: bug/support/etc.
 app.post('/chatbot/report', verifyFirebaseToken, async (req, res) => {
   try {
     const { type, message, meta } = req.body;
@@ -155,7 +155,7 @@ app.post('/chatbot/report', verifyFirebaseToken, async (req, res) => {
   }
 });
 
-// 💬 Chatbot log: append conversation messages
+//  Chatbot log: append conversation messages
 app.post('/chatbot/log', verifyFirebaseToken, async (req, res) => {
   try {
     const { sessionId, messages } = req.body; // messages: [{ role, text }]
@@ -174,7 +174,7 @@ app.post('/chatbot/log', verifyFirebaseToken, async (req, res) => {
 
 // ===== Admin-only views =====
 
-// 👥 List Firebase users with search + pagination
+//  List Firebase users with search + pagination
 app.get('/admin/users', verifyFirebaseToken, requireAdmin, async (req, res) => {
   try {
     const { search = "", page = 1, pageSize = 10 } = req.query;
@@ -193,7 +193,7 @@ app.get('/admin/users', verifyFirebaseToken, requireAdmin, async (req, res) => {
       lastSignIn: u.metadata.lastSignInTime
     }));
 
-    // 🔎 Apply search filter (email or UID)
+    //  Apply search filter (email or UID)
     if (search) {
       const s = search.toLowerCase();
       users = users.filter(
@@ -203,7 +203,7 @@ app.get('/admin/users', verifyFirebaseToken, requireAdmin, async (req, res) => {
       );
     }
 
-    // 📄 Pagination
+    //  Pagination
     const totalPages = Math.ceil(users.length / pageSize);
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
@@ -217,7 +217,7 @@ app.get('/admin/users', verifyFirebaseToken, requireAdmin, async (req, res) => {
 });
 
 
-// 📩 Contact messages (list + update status)
+//  Contact messages (list + update status)
 app.get('/admin/messages', verifyFirebaseToken, requireAdmin, async (req, res) => {
   try {
     const { search = "", page = 1, pageSize = 10 } = req.query;
@@ -256,7 +256,7 @@ app.patch('/admin/messages/:id', verifyFirebaseToken, requireAdmin, async (req, 
   res.json(ok);
 });
 
-// 🐞 Reports (list + update status)
+//  Reports (list + update status)
 app.get('/admin/reports', verifyFirebaseToken, requireAdmin, async (req, res) => {
   try {
     const { search = "", page = 1, pageSize = 10 } = req.query;
@@ -295,7 +295,7 @@ app.patch('/admin/reports/:id', verifyFirebaseToken, requireAdmin, async (req, r
 });
 
 
-// 💬 Chat logs (list + detail + delete)
+//  Chat logs (list + detail + delete)
 app.get('/admin/chatlogs', verifyFirebaseToken, requireAdmin, async (req, res) => {
   try {
     const { search = "", page = 1, pageSize = 10 } = req.query;
@@ -374,7 +374,74 @@ app.post('/admin/set-role', async (req, res) => {
   }
 });
 
-// 📩 Delete a contact message
+// 🏋️ Admin Workouts (CRUD)
+app.get('/admin/workouts', verifyFirebaseToken, requireAdmin, async (req, res) => {
+  try {
+    const { search = "", page = 1, pageSize = 10 } = req.query;
+
+    let query = {};
+    if (search) {
+      const regex = new RegExp(search, "i");
+      query = { $or: [{ title: regex }, { details: regex }] };
+    }
+
+    const totalCount = await Workout.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    const items = await Workout.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(Number(pageSize));
+
+    res.json({ items, totalPages });
+  } catch (err) {
+    console.error("❌ Failed to list workouts:", err);
+    res.status(500).json({ error: "Failed to list workouts" });
+  }
+});
+
+app.post('/admin/workouts', verifyFirebaseToken, requireAdmin, async (req, res) => {
+  try {
+    const { title, details, imageUrl } = req.body;
+    if (!title || !details) return res.status(400).json({ error: 'Missing fields' });
+
+    const workout = await Workout.create({ title, details, imageUrl });
+    res.json({ ok: true, id: workout._id });
+  } catch (err) {
+    console.error("❌ Failed to add workout:", err);
+    res.status(500).json({ error: "Failed to add workout" });
+  }
+});
+
+app.patch('/admin/workouts/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
+  try {
+    const { title, details, imageUrl } = req.body;
+    const updated = await Workout.findByIdAndUpdate(
+      req.params.id,
+      { title, details, imageUrl },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ error: 'Workout not found' });
+    res.json(updated);
+  } catch (err) {
+    console.error("❌ Failed to update workout:", err);
+    res.status(500).json({ error: "Failed to update workout" });
+  }
+});
+
+app.delete('/admin/workouts/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
+  try {
+    const deleted = await Workout.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Workout not found' });
+    res.json({ ok: true, id: deleted._id });
+  } catch (err) {
+    console.error("❌ Failed to delete workout:", err);
+    res.status(500).json({ error: "Failed to delete workout" });
+  }
+});
+
+
+//  Delete a contact message
 app.delete('/admin/messages/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
   try {
     const deleted = await ContactMessage.findByIdAndDelete(req.params.id);
@@ -386,7 +453,7 @@ app.delete('/admin/messages/:id', verifyFirebaseToken, requireAdmin, async (req,
   }
 });
 
-// 🐞 Delete a report
+//  Delete a report
 app.delete('/admin/reports/:id', verifyFirebaseToken, requireAdmin, async (req, res) => {
   try {
     const deleted = await ChatbotReport.findByIdAndDelete(req.params.id);
@@ -414,9 +481,10 @@ app.get('/whoami/:uid', async (req, res) => {
   }
 });
 
-// 🚀 Start server
+//  Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
