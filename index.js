@@ -256,7 +256,7 @@ app.patch('/admin/messages/:id', verifyFirebaseToken, requireAdmin, async (req, 
   res.json(ok);
 });
 
-//  Reports (list + update status)
+//  Reports (list + update )
 app.get('/admin/reports', verifyFirebaseToken, requireAdmin, async (req, res) => {
   try {
     const { search = "", page = 1, pageSize = 10 } = req.query;
@@ -484,6 +484,7 @@ app.get('/whoami/:uid', async (req, res) => {
 //  Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
